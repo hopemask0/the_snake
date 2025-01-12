@@ -47,6 +47,7 @@ class GameObject:
         self.body_color = body_color
 
     def draw(self):
+        """Абстрактный метод для отрисовки объекта."""
         pass
 
 
@@ -54,6 +55,7 @@ class Apple(GameObject):
     """Класс для яблока."""
 
     def __init__(self):
+        """Базовый метод"""
         super().__init__(body_color=APPLE_COLOR)
         self.randomize_position()
 
@@ -75,6 +77,7 @@ class Snake(GameObject):
     """Класс для змейки."""
 
     def __init__(self):
+        """Базовый метод"""
         super().__init__(body_color=SNAKE_COLOR)
         self.length = 1
         self.positions = [((SCREEN_WIDTH // 2), (SCREEN_HEIGHT // 2))]
