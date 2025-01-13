@@ -1,4 +1,4 @@
-from random import randint
+from random import choice
 import pygame
 
 # Константы для размеров поля и сетки:
@@ -13,16 +13,10 @@ DOWN = (0, 1)
 LEFT = (-1, 0)
 RIGHT = (1, 0)
 
-# Цвет фона - черный:
+# Цвета:
 BOARD_BACKGROUND_COLOR = (0, 0, 0)
-
-# Цвет границы ячейки
 BORDER_COLOR = (93, 216, 228)
-
-# Цвет яблока
 APPLE_COLOR = (255, 0, 0)
-
-# Цвет змейки
 SNAKE_COLOR = (0, 255, 0)
 
 # Скорость движения змейки:
@@ -30,24 +24,35 @@ SPEED = 10
 
 # Настройка игрового окна:
 screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT), 0, 32)
-
-# Заголовок окна игрового поля:
 pygame.display.set_caption('Змейка')
 
 # Настройка времени:
 clock = pygame.time.Clock()
 
+# Множество всех ячеек
+ALL_CELLS = set(
+    (x * GRID_SIZE, y * GRID_SIZE)
+    for x in range(GRID_WIDTH)
+    for y in range(GRID_HEIGHT)
+)
+# Глобальная переменная для хранения рекорда
+record_length = 0
 
-# Тут опишите все классы игры.
+
+def update_window_title(snake, record_length):
+    """Обновляет заголовок окна с текущим и рекордным размером змейки."""
+    pygame.display.set_caption(
+        f'Змейка | Текущий: {snake.length} | Рекорд: {record_length}')
+
+
 class GameObject:
-    """Базовый класс для всех игровых объектов"""
+    """Базовый класс для всех игровых объектов."""
 
     def __init__(self, position=(0, 0), body_color=None):
         self.position = position
         self.body_color = body_color
-
+    """Метод для отрисовки"""
     def draw(self):
-        """Абстрактный метод для отрисовки объекта."""
         pass
 
 
@@ -55,16 +60,14 @@ class Apple(GameObject):
     """Класс для яблока."""
 
     def __init__(self):
-        """Базовый метод"""
         super().__init__(body_color=APPLE_COLOR)
-        self.randomize_position()
+        self.randomize_position(set())
 
-    def randomize_position(self):
-        """Устанавливает случайное положение яблока на игровом поле."""
-        self.position = (
-            randint(0, GRID_WIDTH - 1) * GRID_SIZE,
-            randint(0, GRID_HEIGHT - 1) * GRID_SIZE
-        )
+    def randomize_position(self, occupied):
+        """Устанавливает случайное положение яблока на свободной ячейке."""
+        free_cells = ALL_CELLS - occupied
+        if free_cells:
+            self.position = choice(tuple(free_cells))
 
     def draw(self):
         """Отрисовывает яблоко на экране."""
@@ -77,7 +80,6 @@ class Snake(GameObject):
     """Класс для змейки."""
 
     def __init__(self):
-        """Базовый метод"""
         super().__init__(body_color=SNAKE_COLOR)
         self.length = 1
         self.positions = [((SCREEN_WIDTH // 2), (SCREEN_HEIGHT // 2))]
@@ -141,6 +143,9 @@ def handle_keys(snake):
             pygame.quit()
             raise SystemExit
         elif event.type == pygame.KEYDOWN:
+            if event.key == pygame.K_ESCAPE:  # Завершение игры при нажатии ESC
+                pygame.quit()
+                raise SystemExit
             if event.key == pygame.K_UP and snake.direction != DOWN:
                 snake.next_direction = UP
             elif event.key == pygame.K_DOWN and snake.direction != UP:
@@ -153,29 +158,40 @@ def handle_keys(snake):
 
 def main():
     """Основная функция игры."""
-    # Инициализация PyGame:
+    global record_length  # Используем глобальную переменную для рекорда
     pygame.init()
-    # Тут нужно создать экземпляры классов.
     snake = Snake()
     apple = Apple()
 
     while True:
         clock.tick(SPEED)
 
-        # Тут опишите основную логику игры.
+        # Обработка нажатий клавиш
         handle_keys(snake)
 
+        # Обновление направления змейки
         snake.update_direction()
 
+        # Движение змейки
         snake.move()
 
+        # Проверка, съела ли змейка яблоко
         if snake.get_head_position() == apple.position:
             snake.length += 1
-            apple.randomize_position()
+            apple.randomize_position(occupied=set(snake.positions))
 
+            # Обновление рекорда
+            if snake.length > record_length:
+                record_length = snake.length
+
+        # Проверка столкновения змейки с собой
         if snake.get_head_position() in snake.positions[1:]:
             snake.reset()
 
+        # Обновление заголовка окна
+        update_window_title(snake, record_length)
+
+        # Отрисовка объектов
         screen.fill(BOARD_BACKGROUND_COLOR)
         snake.draw()
         apple.draw()
